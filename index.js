@@ -9,7 +9,7 @@ const leagueTeams = [ 'Bournemouth', 'Cardiff', 'Fulham', 'Crystal Palace', 'Hud
 ];
 
 let { features, labels, testFeatures, testLabels } = loadCSV('./data/18-19.csv', {
-  splitTest: 379,
+  splitTest: 200,
   dataColumns: ['HomeTeam', 'AwayTeam'],
   labelColumns: ['FTR'],
   converters: {
@@ -26,12 +26,24 @@ let { features, labels, testFeatures, testLabels } = loadCSV('./data/18-19.csv',
   }
 });
 
-console.log("TCL: testFeatures", testFeatures.length, testFeatures[0], 
-  _.flatMap(testLabels[0]));
-
 const regression = new LogisticRegression(features, _.flatMap(labels), {
   learningRate: 0.1,
   iterations: 10,
-  batchSize: 10,
+  batchSize: 3,
   teams: leagueTeams
 });
+
+regression.train();
+
+// regression.predict([
+//   ['Tottenham', 'Everton'],
+//   ['Liverpool', 'Wolves'],
+//   ['Huddersfield', 'Man United'],
+//   ['Southampton', 'Huddersfield'],
+//   ['Wolves', 'Fulham']
+// ]).print()
+
+// console.log('test:', regression.test(testFeatures, _.flatMap(testLabels)));
+
+// console.log("TCL: testFeatures", testFeatures, _.flatMap(testLabels))
+console.log('test:', regression.test(testFeatures, _.flatMap(testLabels)));

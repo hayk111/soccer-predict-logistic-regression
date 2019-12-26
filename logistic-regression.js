@@ -10,8 +10,12 @@ class LogisticRegression {
     
     this.teamPoints = this.initTeamPoints();
 
+    this.featuresArr = features.slice();
+    this.labelsArr = labels.slice();
+
     this.features = this.processFeatures(features, labels);
     this.labels = tf.tensor(labels);
+
     this.costHistory = [];
 
     this.weights = tf.zeros([this.features.shape[1], this.labels.shape[1]]); // initial [[0], [0]] for [[b], [m]]
@@ -46,10 +50,12 @@ class LogisticRegression {
   test(testFeatures, testLabels) {
     const predictions = this.predict(testFeatures);
     testLabels = tf.tensor(testLabels).argMax(1);
+    console.log("TCL: LogisticRegression -> test -> testLabels", testLabels)
 
     const incorrect = predictions
       .notEqual(testLabels)
       .sum()
+      .bufferSync()
       .get();
 
     return (predictions.shape[0] - incorrect) / predictions.shape[0];
@@ -68,32 +74,81 @@ class LogisticRegression {
   }
 
   predict(observations) {
-    return this.processFeatures(observations)
+    this.getFeaturesDiffs(observations)
       .matMul(this.weights)
       .softmax()
-      .argMax(1); // largest values across horizontal axis
+      .print();
+      
+    return this.getFeaturesDiffs(observations)
+      .matMul(this.weights)
+      .softmax()
+      .argMax(1) // largest values across horizontal axis
+  }
+
+  getFeaturesDiffs(observations) {
+    let testObs = [];
+
+    _.each(observations, obs => {
+      testObs.push([this.pointDiff(
+        this.getTeamPoints(
+          obs[0],
+          this.featuresArr,
+          this.labelsArr,
+          this.features.shape[0]
+        ),
+        this.getTeamPoints(
+          obs[1],
+          this.featuresArr,
+          this.labelsArr,
+          this.features.shape[0]
+        )
+      )])
+    });
+
+    observations = tf.tensor(testObs);
+
+    observations.print()
+    observations = tf.ones([observations.shape[0], 1]).concat(observations, 1);
+    console.log("TCL: LogisticRegression -> getFeaturesDiffs -> testObs", testObs)
+
+    return observations;
   }
 
   processFeatures(features, labels) {
-    console.log('Man United after 38 game: ', this.getTeamPoints('Man United', features, labels, 38));
+    let trainingFeatures = [];
 
-    
-    // features = tf.tensor(features);
+    _.each(features, (feature, index) => {
+      trainingFeatures.push([this.pointDiff(
+        this.getTeamPoints(
+          feature[0],
+          features,
+          labels,
+          index
+        ),
+        this.getTeamPoints(
+          feature[1],
+          features,
+          labels,
+          index
+        )
+      )]);
+    });
+
+    features = tf.tensor(trainingFeatures);
     
     // if (this.mean && this.variance) {
     //   features = features.sub(this.mean).div(this.variance.pow(0.5));
     // } else {
     //   features = this.standardize(features);
     // }
-    
-    // features = tf.ones([features.shape[0], 1]).concat(features, 1);
 
-    return tf.tensor([[0], [0], [8]]);
+    features = tf.ones([features.shape[0], 1]).concat(features, 1);
+    
+    return features;
   }
 
   standardize(features) {
     const { mean, variance } = tf.moments(features, 0);
-    variance.print()``
     this.mean = mean;
     this.variance = variance;
 
@@ -119,6 +174,7 @@ class LogisticRegression {
     const cost = termOne.add(termTwo)
       .div(this.features.shape[0])
       .mul(-1)
+      .bufferSync()
       .get(0, 0);
 
     this.costHistory.unshift(cost);
@@ -146,22 +202,22 @@ class LogisticRegression {
     for(let i = 0; i < featuresPlayed.length; i++) {
       switch(labelsPlayed[i].indexOf(1)) {
         case 0:
-          console.log("TCL: LogisticRegression -> getTeamPoints -> featuresPlayed[i][1]", featuresPlayed[i][1])
           teamPoints.set(featuresPlayed[i][0], teamPoints.get(featuresPlayed[i][0]) + 3);
           break;
         case 1:
-          console.log("TCL: LogisticRegression -> getTeamPoints -> featuresPlayed[i][0]", featuresPlayed[i][0])
-          console.log("TCL: LogisticRegression -> getTeamPoints -> featuresPlayed[i][1]", featuresPlayed[i][1])
           teamPoints.set(featuresPlayed[i][0], teamPoints.get(featuresPlayed[i][0]) + 1);
           teamPoints.set(featuresPlayed[i][1], teamPoints.get(featuresPlayed[i][1]) + 1);
           break;
         case 2:
-          console.log("TCL: LogisticRegression -> getTeamPoints -> featuresPlayed[i][0]", featuresPlayed[i][0])
           teamPoints.set(featuresPlayed[i][1], teamPoints.get(featuresPlayed[i][1]) + 3);
       }
     }
   
     return teamPoints.get(teamName);
+  }
+
+  pointDiff(p1, p2) {
+    return p1 - p2;
   }
 
   initTeamPoints() {
