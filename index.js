@@ -4,8 +4,11 @@ const loadCSV = require('./load-csv');
 const LogisticRegression = require('./logistic-regression');
 const _ = require('lodash');
 
-const leagueTeams = [ 'Bournemouth', 'Cardiff', 'Fulham', 'Crystal Palace', 'Huddersfield', 'Chelsea', 'Newcastle', 'Tottenham', 'Watford',
-  'Brighton', 'Wolves', 'Everton', 'Arsenal', 'Man City', 'Liverpool', 'West Ham', 'Southampton', 'Burnley', 'Man United', 'Leicester'
+const leagueTeams = [ 
+  'Bournemouth', 'Cardiff', 'Fulham', 'Crystal Palace', 'Huddersfield', 
+  'Chelsea', 'Newcastle', 'Tottenham', 'Watford', 'Brighton', 'Wolves', 
+  'Everton', 'Arsenal', 'Man City', 'Liverpool', 'West Ham', 'Southampton', 
+  'Burnley', 'Man United', 'Leicester'
 ];
 
 let { features, labels, testFeatures, testLabels } = loadCSV('./data/18-19.csv', {
@@ -28,22 +31,15 @@ let { features, labels, testFeatures, testLabels } = loadCSV('./data/18-19.csv',
 
 const regression = new LogisticRegression(features, _.flatMap(labels), {
   learningRate: 0.1,
-  iterations: 10,
+  iterations: 8,
   batchSize: 3,
   teams: leagueTeams
 });
 
+console.log("TCL: features", features.length, testFeatures.length, features[0]);
+
 regression.train();
 
-// regression.predict([
-//   ['Tottenham', 'Everton'],
-//   ['Liverpool', 'Wolves'],
-//   ['Huddersfield', 'Man United'],
-//   ['Southampton', 'Huddersfield'],
-//   ['Wolves', 'Fulham']
-// ]).print()
+// console.log('avg:', regression.getHomeTeamMeanResult(features, _.flatMap(labels), 350));
 
-// console.log('test:', regression.test(testFeatures, _.flatMap(testLabels)));
-
-// console.log("TCL: testFeatures", testFeatures, _.flatMap(testLabels))
 console.log('test:', regression.test(testFeatures, _.flatMap(testLabels)));

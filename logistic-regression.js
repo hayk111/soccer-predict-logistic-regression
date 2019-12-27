@@ -50,7 +50,6 @@ class LogisticRegression {
   test(testFeatures, testLabels) {
     const predictions = this.predict(testFeatures);
     testLabels = tf.tensor(testLabels).argMax(1);
-    console.log("TCL: LogisticRegression -> test -> testLabels", testLabels)
 
     const incorrect = predictions
       .notEqual(testLabels)
@@ -74,11 +73,6 @@ class LogisticRegression {
   }
 
   predict(observations) {
-    this.getFeaturesDiffs(observations)
-      .matMul(this.weights)
-      .softmax()
-      .print();
-      
     return this.getFeaturesDiffs(observations)
       .matMul(this.weights)
       .softmax()
@@ -102,14 +96,12 @@ class LogisticRegression {
           this.labelsArr,
           this.features.shape[0]
         )
-      )])
+      ), this.getHomeTeamMeanResult(this.featuresArr, this.labelsArr, this.featuresArr.length)])
     });
 
-    observations = tf.tensor(testObs);
-
-    observations.print()
-    observations = tf.ones([observations.shape[0], 1]).concat(observations, 1);
     console.log("TCL: LogisticRegression -> getFeaturesDiffs -> testObs", testObs)
+    observations = tf.tensor(testObs);
+    observations = tf.ones([observations.shape[0], 1]).concat(observations, 1);
 
     return observations;
   }
@@ -131,19 +123,20 @@ class LogisticRegression {
           labels,
           index
         )
-      )]);
+      ), this.getHomeTeamMeanResult(features, labels, index + 1)]);
     });
 
     features = tf.tensor(trainingFeatures);
-    
+
     // if (this.mean && this.variance) {
     //   features = features.sub(this.mean).div(this.variance.pow(0.5));
     // } else {
     //   features = this.standardize(features);
     // }
-
+    
     features = tf.ones([features.shape[0], 1]).concat(features, 1);
     
+    features.print();
     return features;
   }
 
@@ -214,6 +207,21 @@ class LogisticRegression {
     }
   
     return teamPoints.get(teamName);
+  }
+  
+  getHomeTeamMeanResult(features, labels, game) {
+    const featuresPlayed = _.slice(features, 0, game);
+    const labelsPlayed = _.slice(labels, 0, game);
+    let homeWins = 0; 
+    
+    _.each(featuresPlayed, (game, index) => {
+      switch(labelsPlayed[index].indexOf(1)) {
+        case 0:
+          homeWins++;
+        }
+      })
+      
+    return (featuresPlayed.length - homeWins) / featuresPlayed.length; 
   }
 
   pointDiff(p1, p2) {
