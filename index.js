@@ -40,6 +40,8 @@ console.log("TCL: features", features.length, testFeatures.length, features[0]);
 
 regression.train();
 
+
+
 // console.log('avg:', regression.getHomeTeamMeanResult(features, _.flatMap(labels), 350));
 
 console.log('test:', regression.test(testFeatures, _.flatMap(testLabels)));
