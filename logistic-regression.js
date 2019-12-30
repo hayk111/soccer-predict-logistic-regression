@@ -19,6 +19,7 @@ class LogisticRegression {
     this.costHistory = [];
 
     this.weights = tf.zeros([this.features.shape[1], this.labels.shape[1]]); // initial [[0], [0]] for [[b], [m]]
+    this.weights.print()
   }
 
   train() {
@@ -73,70 +74,62 @@ class LogisticRegression {
   }
 
   predict(observations) {
-    return this.getFeaturesDiffs(observations)
+    return this.processFeatures(observations)
       .matMul(this.weights)
       .softmax()
       .argMax(1) // largest values across horizontal axis
   }
 
-  getFeaturesDiffs(observations) {
-    let testObs = [];
-
-    _.each(observations, obs => {
-      testObs.push([this.pointDiff(
-        this.getTeamPoints(
-          obs[0],
-          this.featuresArr,
-          this.labelsArr,
-          this.features.shape[0]
-        ),
-        this.getTeamPoints(
-          obs[1],
-          this.featuresArr,
-          this.labelsArr,
-          this.features.shape[0]
-        )
-      ), this.getHomeTeamMeanResult(this.featuresArr, this.labelsArr, this.featuresArr.length)])
-    });
-
-    console.log("TCL: LogisticRegression -> getFeaturesDiffs -> testObs", testObs)
-    observations = tf.tensor(testObs);
-    observations = tf.ones([observations.shape[0], 1]).concat(observations, 1);
-
-    return observations;
-  }
-
-  processFeatures(features, labels) {
+  processFeatures(features, labels = []) {
     let trainingFeatures = [];
 
-    _.each(features, (feature, index) => {
-      trainingFeatures.push([this.pointDiff(
-        this.getTeamPoints(
-          feature[0],
-          features,
-          labels,
-          index
-        ),
-        this.getTeamPoints(
-          feature[1],
-          features,
-          labels,
-          index
-        )
-      ), this.getHomeTeamMeanResult(features, labels, index + 1)]);
-    });
+    if (labels.length) {
+      _.each(features, (feature, index) => {
+        trainingFeatures.push([this.pointDiff(
+          this.getTeamPoints(
+            feature[0],
+            features,
+            labels,
+            index
+          ),
+          this.getTeamPoints(
+            feature[1],
+            features,
+            labels,
+            index
+          )
+        ), this.getHomeTeamMeanResult(feature[0], features, labels, index + 1)]);
+      });
+    } else {
+      _.each(features, obs => {
+        trainingFeatures.push([this.pointDiff(
+          this.getTeamPoints(
+            obs[0],
+            this.featuresArr,
+            this.labelsArr,
+            this.features.shape[0]
+          ),
+          this.getTeamPoints(
+            obs[1],
+            this.featuresArr,
+            this.labelsArr,
+            this.features.shape[0]
+          )
+        ), this.getHomeTeamMeanResult(obs[0], this.featuresArr, this.labelsArr, this.featuresArr.length)])
+      });
+    }
 
     features = tf.tensor(trainingFeatures);
 
-    // if (this.mean && this.variance) {
-    //   features = features.sub(this.mean).div(this.variance.pow(0.5));
-    // } else {
-    //   features = this.standardize(features);
-    // }
+    if (this.mean && this.variance) {
+      features = features.sub(this.mean).div(this.variance.pow(0.5));
+    } else {
+      features = this.standardize(features);
+    }
     
     features = tf.ones([features.shape[0], 1]).concat(features, 1);
+    features.print()
     
-    features.print();
     return features;
   }
 
@@ -208,20 +201,43 @@ class LogisticRegression {
   
     return teamPoints.get(teamName);
   }
-  
-  getHomeTeamMeanResult(features, labels, game) {
+
+  getTeamHomePoints(teamName, features, labels, game = 0) {
+    let homeTeamPoints = 0;
+
     const featuresPlayed = _.slice(features, 0, game);
     const labelsPlayed = _.slice(labels, 0, game);
-    let homeWins = 0; 
-    
-    _.each(featuresPlayed, (game, index) => {
-      switch(labelsPlayed[index].indexOf(1)) {
+
+    const indexesOfTeam = this.getAllHomeIndexes(featuresPlayed, teamName)
+
+    _.each(indexesOfTeam, (gameIndex) => {
+      switch(labelsPlayed[gameIndex].indexOf(1)) {
         case 0:
-          homeWins++;
-        }
+          homeTeamPoints += 3;
+          break;
+        case 1:
+          homeTeamPoints += 1;
+          break;
+      }
+    });
+
+    return homeTeamPoints;
+  }
+  
+  getHomeTeamMeanResult(teamName, features, labels, game = 0) {
+    const teamPoints = this.getTeamPoints(teamName, features, labels, game);
+
+    return (teamPoints - this.getTeamHomePoints(teamName, features, labels, game)) / teamPoints || 0; 
+  }
+
+  getAllHomeIndexes(arr, val) {
+    return _.chain(arr)
+      .map((item, index) => {
+        if(item[0] === val)
+          return index;
       })
-      
-    return (featuresPlayed.length - homeWins) / featuresPlayed.length; 
+      .filter(val => val !== undefined)
+      .value()
   }
 
   pointDiff(p1, p2) {

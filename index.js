@@ -12,7 +12,7 @@ const leagueTeams = [
 ];
 
 let { features, labels, testFeatures, testLabels } = loadCSV('./data/18-19.csv', {
-  splitTest: 200,
+  splitTest: 150,
   dataColumns: ['HomeTeam', 'AwayTeam'],
   labelColumns: ['FTR'],
   converters: {
@@ -32,15 +32,11 @@ let { features, labels, testFeatures, testLabels } = loadCSV('./data/18-19.csv',
 const regression = new LogisticRegression(features, _.flatMap(labels), {
   learningRate: 0.1,
   iterations: 8,
-  batchSize: 3,
+  batchSize: 10,
   teams: leagueTeams
 });
 
-console.log("TCL: features", features.length, testFeatures.length, features[0]);
-
 regression.train();
-
-
 
 // console.log('avg:', regression.getHomeTeamMeanResult(features, _.flatMap(labels), 350));
 
