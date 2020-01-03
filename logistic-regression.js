@@ -81,28 +81,38 @@ class LogisticRegression {
   }
 
   processFeatures(features, labels = []) {
+    console.log("TCL: LogisticRegression -> processFeatures -> features", features)
     let trainingFeatures = [];
 
     if (labels.length) {
       _.each(features, (feature, index) => {
-        trainingFeatures.push([this.pointDiff(
-          this.getTeamPoints(
-            feature[0],
-            features,
-            labels,
-            index
-          ),
-          this.getTeamPoints(
-            feature[1],
-            features,
-            labels,
-            index
-          )
-        ), this.getHomeTeamMeanResult(feature[0], features, labels, index + 1)]);
+        trainingFeatures.push([
+          this.pointDiff(
+            this.getTeamPoints(
+              feature[0],
+              features,
+              labels,
+              index
+            ),
+            this.getTeamPoints(
+              feature[1],
+              features,
+              labels,
+              index
+            )), 
+          this.getTwoTeamsHomeAwayDiff(
+            feature[0], 
+            feature[1], 
+            this.featuresArr, 
+            this.labelsArr,
+            this.featuresArr.length
+          ), feature[2], feature[3], feature[4]
+        ]);
       });
     } else {
       _.each(features, obs => {
-        trainingFeatures.push([this.pointDiff(
+        trainingFeatures.push([
+          this.pointDiff (
           this.getTeamPoints(
             obs[0],
             this.featuresArr,
@@ -115,7 +125,14 @@ class LogisticRegression {
             this.labelsArr,
             this.features.shape[0]
           )
-        ), this.getHomeTeamMeanResult(obs[0], this.featuresArr, this.labelsArr, this.featuresArr.length)])
+        ), this.getTwoTeamsHomeAwayDiff(
+            obs[0], 
+            obs[1], 
+            this.featuresArr, 
+            this.labelsArr,
+            this.featuresArr.length
+          ), obs[2], obs[3], obs[4]
+        ])
       });
     }
 
@@ -223,6 +240,35 @@ class LogisticRegression {
 
     return homeTeamPoints;
   }
+
+  getTeamAwayPoints(teamName, features, labels, game = 0) {
+    let awayTeamPoints = 0;
+
+    const featuresPlayed = _.slice(features, 0, game);
+    const labelsPlayed = _.slice(labels, 0, game);
+
+    const indexesOfTeam = this.getAllAwayIndexes(featuresPlayed, teamName)
+
+    _.each(indexesOfTeam, (gameIndex) => {
+      switch(labelsPlayed[gameIndex].indexOf(1)) {
+        case 2:
+          homeTeamPoints += 3;
+          break;
+        case 1:
+          homeTeamPoints += 1;
+          break;
+      }
+    });
+
+    return awayTeamPoints;
+  }
+
+  getTwoTeamsHomeAwayDiff(teamOne, teamTwo, features, labels, game = 0) {
+    const teamOnePoints = this.getTeamPoints(teamOne, features, labels, game);
+    const teamTwoPoints = this.getTeamPoints(teamTwo, features, labels, game);
+
+    return teamOnePoints - teamTwoPoints;
+  }
   
   getHomeTeamMeanResult(teamName, features, labels, game = 0) {
     const teamPoints = this.getTeamPoints(teamName, features, labels, game);
@@ -234,6 +280,16 @@ class LogisticRegression {
     return _.chain(arr)
       .map((item, index) => {
         if(item[0] === val)
+          return index;
+      })
+      .filter(val => val !== undefined)
+      .value()
+  }
+
+  getAllAwayIndexes(arr, val) {
+    return _.chain(arr)
+      .map((item, index) => {
+        if(item[1] === val)
           return index;
       })
       .filter(val => val !== undefined)

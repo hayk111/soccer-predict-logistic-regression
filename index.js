@@ -12,8 +12,8 @@ const leagueTeams = [
 ];
 
 let { features, labels, testFeatures, testLabels } = loadCSV('./data/18-19.csv', {
-  splitTest: 150,
-  dataColumns: ['HomeTeam', 'AwayTeam'],
+  splitTest: 250,
+  dataColumns: ['HomeTeam', 'AwayTeam', 'B365H', 'B365D', 'B365A'],
   labelColumns: ['FTR'],
   converters: {
     'FTR': (value) => {
@@ -32,7 +32,7 @@ let { features, labels, testFeatures, testLabels } = loadCSV('./data/18-19.csv',
 const regression = new LogisticRegression(features, _.flatMap(labels), {
   learningRate: 0.1,
   iterations: 8,
-  batchSize: 10,
+  batchSize: 3,
   teams: leagueTeams
 });
 
